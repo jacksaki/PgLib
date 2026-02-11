@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PgLibCmd": {
+      "commandName": "Project",
+      "commandLineArgs": "table-list -s public"
+    }
+  }
+}
