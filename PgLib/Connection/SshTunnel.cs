@@ -1,113 +1,85 @@
 ﻿using PgLib.Connection;
 using Renci.SshNet;
 using System.Collections.Concurrent;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 
-internal sealed class SshTunnel : IDisposable
+namespace PgLib.Connection;
+
+internal class SshTunnel : IAsyncDisposable
 {
-    private readonly ConnectionConfig _config;
-    private readonly object _lock = new();
-    private SshClient? _client;
-    private ForwardedPortLocal? _port;
-    private CancellationTokenSource _cts = new();
-    private Task? _monitorTask;
-    private bool _disposed;
+    // 全インスタンスを追跡するための static 管理
+    private static readonly ConcurrentBag<SshTunnel> _instances = new();
 
-    public uint? LocalPort { get; private set; }
+    public ConnectionConfig Config { get; }
+    private SshClient? _sshClient;
+    private ForwardedPortLocal? _forwardedPort;
 
-    public SshTunnel(ConnectionConfig config)
+    internal SshTunnel(ConnectionConfig config)
     {
-        _config = config;
+        Config = config;
+        _instances.Add(this);
     }
 
-    private AuthenticationMethod GetAuthenticationMethod(SshConfig conf)
+    public async Task ConnectAsync()
     {
-        if (string.IsNullOrEmpty(conf.SshPrivateKey))
+        if (Config.SshConfig == null)
         {
-            return new PasswordAuthenticationMethod(conf.SshUserName, conf.SshPassword);
+            return;
         }
-        else
+        if (_sshClient?.IsConnected == true)
         {
-            return new PrivateKeyAuthenticationMethod(conf.SshUserName, new PrivateKeyFile(conf.SshPrivateKey, string.IsNullOrEmpty(conf.SshPassword) ? null : conf.SshPassword));
+            return;
         }
-    }
 
-    public void Start()
-    {
-        lock (_lock)
+        var ssh = Config.SshConfig;
+        ssh.LocalPort = LocalPortAllocator.Allocate();
+
+        var connectionInfo = !string.IsNullOrEmpty(ssh.SshPrivateKey)
+            ? new ConnectionInfo(ssh.SshHostName, ssh.SshPort, ssh.SshUserName, new PrivateKeyAuthenticationMethod(ssh.SshUserName, new PrivateKeyFile(ssh.SshPrivateKey)))
+            : new ConnectionInfo(ssh.SshHostName, ssh.SshPort, ssh.SshUserName, new PasswordAuthenticationMethod(ssh.SshUserName, ssh.SshPassword));
+
+        _sshClient = new SshClient(connectionInfo);
+
+        await Task.Run(() =>
         {
-            Cleanup();
-
-            LocalPort = _config.SshConfig!.LocalPort ?? LocalPortAllocator.Allocate();
-            var ssh = _config.SshConfig!;
-            var connectionInfo = new ConnectionInfo(
-                ssh.SshHostName,
-                ssh.SshPort,
-                ssh.SshUserName,
-                GetAuthenticationMethod(ssh)
-            );
-
-            _client = new SshClient(connectionInfo);
-            _client.Connect();
-
-            _port = new ForwardedPortLocal(
-                "127.0.0.1",
-                LocalPort.Value,
-                "localhost",
-                _config.DbPort
-            );
-
-            _client.AddForwardedPort(_port);
-            _port.Start();
-            StartMonitor();
-        }
-    }
-
-    private void StartMonitor()
-    {
-        _monitorTask = Task.Run(async () =>
-        {
-            while (!_cts.Token.IsCancellationRequested)
-            {
-                await Task.Delay(5000, _cts.Token);
-
-                if (_client == null || !_client.IsConnected)
-                {
-                    try
-                    {
-                        Start(); // 再接続
-                    }
-                    catch
-                    {
-                        // 必要ならログ出す
-                    }
-                }
-            }
+            _sshClient.Connect();
+            _forwardedPort = new ForwardedPortLocal("127.0.0.1", (uint)ssh.LocalPort.Value, Config.DbHost, (uint)Config.DbPort);
+            _sshClient.AddForwardedPort(_forwardedPort);
+            _forwardedPort.Start();
         });
     }
 
-    private void Cleanup()
+    // 個別の切断処理
+    public async ValueTask DisposeAsync()
     {
-        try { _port?.Stop(); } catch { }
-        try { _client?.Disconnect(); } catch { }
+        await Task.Run(() =>
+        {
+            try
+            {
+                if (_forwardedPort != null && _forwardedPort.IsStarted)
+                {
+                    _forwardedPort.Stop();
+                }
+                if (_sshClient != null)
+                {
+                    if (_sshClient.IsConnected)
+                    {
+                        _sshClient.Disconnect();
+                    }
+                    _sshClient.Dispose();
+                }
+            }
+            catch { /* ignore */ }
+        });
 
-        _port?.Dispose();
-        _client?.Dispose();
-
-        _port = null;
-        _client = null;
+        GC.SuppressFinalize(this);
     }
 
-    public void Dispose()
+    // 全てを一括で切断する static メソッド
+    public static async Task DisconnectAllAsync()
     {
-        if (_disposed) return;
-
-        _cts.Cancel();
-        _monitorTask?.Wait();
-
-        Cleanup();
-
-        _cts.Dispose();
-        _disposed = true;
+        var tasks = _instances.Select(i => i.DisposeAsync().AsTask());
+        await Task.WhenAll(tasks);
+        // リストをクリア
+        _instances.Clear();
     }
 }

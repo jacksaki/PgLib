@@ -4,6 +4,7 @@ using PgLib.Query;
 using System.Data;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace PgLib;
 public partial class PgQuery : IDisposable
@@ -25,17 +26,14 @@ public partial class PgQuery : IDisposable
         _connection = new NpgsqlConnection(connectionString);
     }
 
-    public void Open()
+    public async Task Open()
     {
         if (_connection.State != ConnectionState.Open)
         {
             if (_config != null)
             {
-                if (_config.SshConfig != null)
-                {
-                    tunnel = new SshTunnel(_config);
-                    tunnel.Start();
-                }
+                tunnel = new SshTunnel(_config);
+                await tunnel.ConnectAsync();
                 _connection.ConnectionString = _config.GetConnectionString();
             }
             _connection.Open();
@@ -47,11 +45,8 @@ public partial class PgQuery : IDisposable
         {
             if (_config != null)
             {
-                if (_config.SshConfig != null)
-                {
-                    tunnel = new SshTunnel(_config);
-                    tunnel.Start();
-                }
+                tunnel = new SshTunnel(_config);
+                await tunnel.ConnectAsync();
                 _connection.ConnectionString = _config.GetConnectionString();
             }
             await _connection.OpenAsync();
