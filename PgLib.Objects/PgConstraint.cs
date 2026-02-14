@@ -68,8 +68,9 @@ public class PgConstraint : IPgObject
 
     public IReadOnlyList<string> ColumnNames { get; private set; } = Array.Empty<string>();
 
-    [DbColumn("constraint_definition")]
-    public string? Definition { get; private set; }
+    [DbColumn("definition")]
+    public string Definition { get; private set; } = string.Empty;
+
     [DbColumn("foreign_table_schema")]
     public string? ForeignTableSchema { get; private set; }
     [DbColumn("foreign_table_name")]

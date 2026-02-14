@@ -2,7 +2,7 @@
   "profiles": {
     "PgLibCmd": {
       "commandName": "Project",
-      "commandLineArgs": "table-list -s public"
+      "commandLineArgs": "format-file -f C:\\Users\\yamasaki\\source\\repos\\PgLib\\PgLibCmd\\bin\\Debug\\net8.0\\test.sql"
     }
   }
 }

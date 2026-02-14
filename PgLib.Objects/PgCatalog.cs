@@ -29,7 +29,8 @@ public sealed class PgCatalog
         if (_config != null)
         {
             return new PgQuery(_config);
-        }else if(!string.IsNullOrEmpty(_connectionString))
+        }
+        else if (!string.IsNullOrEmpty(_connectionString))
         {
             return new PgQuery(_connectionString);
         }

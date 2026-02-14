@@ -30,7 +30,7 @@ internal class PgIndexQuery
     )
     ORDER BY k
 ) AS columns
-,pg_get_indexdef(i.oid) AS ddl
+,pg_get_indexdef(i.oid) AS definition
 FROM
  pg_class i
 INNER JOIN pg_index ix ON (ix.indexrelid = i.oid)

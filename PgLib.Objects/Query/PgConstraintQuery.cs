@@ -31,7 +31,7 @@ internal class PgConstraintQuery
       'column_name',att.attname
     )
     ORDER BY u.ordinality) AS columns
-,pg_get_constraintdef(con.oid, true) AS constraint_definition
+,pg_get_constraintdef(con.oid, true) AS definition
 ,fns.nspname AS foreign_table_schema
 ,fcls.relname AS foreign_table_name
 FROM

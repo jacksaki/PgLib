@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PgLib.Objects\PgLib.Objects.csproj" />
     <ProjectReference Include="..\PgLib\PgLib.csproj" />
+    <ProjectReference Include="..\SQLFormatter\SQLFormatter.csproj" />
   </ItemGroup>
 
 </Project>

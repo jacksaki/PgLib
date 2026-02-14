@@ -14,7 +14,7 @@ public class SshConfig
     [JsonPropertyName("ssh_user_name")]
     public string SshUserName { get; set; } = string.Empty;
     [JsonPropertyName("ssh_private_key")]
-    public string? SshPrivateKey { get; set; } 
+    public string? SshPrivateKey { get; set; }
     [JsonPropertyName("ssh_password")]
-    public string? SshPassword { get; set; } 
+    public string? SshPassword { get; set; }
 }

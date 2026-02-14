@@ -55,8 +55,9 @@ public class PgIndex : IPgObject
             {
                 sb.Append($"{this.TableSchema}.");
             }
-            sb.Append($"{this.TableName} ON ");
+            sb.Append($"{this.TableName} ON (");
             sb.Append(this.Columns.AsValueEnumerable<PgIndexColumn>().Select(x => $"{x.ColumnName} {x.Order}").JoinToString(","));
+            sb.Append($")");
             return sb.ToString();
         });
     }
@@ -77,8 +78,8 @@ public class PgIndex : IPgObject
     public bool IsPrimaryKey { get; private set; }
     [DbColumn("is_unique")]
     public bool IsUnique { get; private set; }
-    [DbColumn("ddl")]
-    public string Definition { get; private set; } = string.Empty;
+    [DbColumn("definition")]
+    private string Definition { get; set; } = string.Empty;
     [DbColumn("columns")]
     private string? _columns = null;
     public IReadOnlyList<PgIndexColumn> Columns { get; private set; } = Array.Empty<PgIndexColumn>().AsReadOnly();

@@ -14,6 +14,8 @@ namespace PgLibCmd
             //    x.AddZLoggerConsole();
             //});
             app.Add<DbObjectCommand>();
+            app.Add<FormatCommand>();
+            app.Add<InstallFormatterCommand>();
             app.Run(args);
         }
     }
