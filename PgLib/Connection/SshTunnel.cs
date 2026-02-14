@@ -1,10 +1,11 @@
-﻿using PgLib.Connection;
+﻿using Microsoft.VisualBasic;
+using PgLib.Connection;
 using Renci.SshNet;
 using System.Collections.Concurrent;
 
 namespace PgLib.Connection;
 
-internal class SshTunnel : IAsyncDisposable
+public class SshTunnel : IAsyncDisposable
 {
     // 全インスタンスを追跡するための static 管理
     private static readonly ConcurrentBag<SshTunnel> _instances = new();
@@ -13,7 +14,7 @@ internal class SshTunnel : IAsyncDisposable
     private SshClient? _sshClient;
     private ForwardedPortLocal? _forwardedPort;
 
-    internal SshTunnel(ConnectionConfig config)
+    public SshTunnel(ConnectionConfig config)
     {
         Config = config;
         _instances.Add(this);

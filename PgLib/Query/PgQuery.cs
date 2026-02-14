@@ -4,51 +4,36 @@ using PgLib.Query;
 using System.Data;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace PgLib;
 public partial class PgQuery : IDisposable
 {
     private readonly NpgsqlConnection _connection;
-    private readonly ConnectionConfig? _config;
-    private SshTunnel? tunnel;
     public PgQuery(NpgsqlConnection connection)
     {
         _connection = connection;
     }
     public PgQuery(ConnectionConfig config)
     {
-        _config = config;
-        _connection = new NpgsqlConnection();
+        _connection = new NpgsqlConnection(config.GetConnectionString());
     }
     public PgQuery(string connectionString)
     {
         _connection = new NpgsqlConnection(connectionString);
     }
 
-    public async Task Open()
+    public void Open()
     {
         if (_connection.State != ConnectionState.Open)
         {
-            if (_config != null)
-            {
-                tunnel = new SshTunnel(_config);
-                await tunnel.ConnectAsync();
-                _connection.ConnectionString = _config.GetConnectionString();
-            }
             _connection.Open();
         }
     }
+
     public async Task OpenAsync()
     {
         if (_connection.State != ConnectionState.Open)
         {
-            if (_config != null)
-            {
-                tunnel = new SshTunnel(_config);
-                await tunnel.ConnectAsync();
-                _connection.ConnectionString = _config.GetConnectionString();
-            }
             await _connection.OpenAsync();
         }
     }

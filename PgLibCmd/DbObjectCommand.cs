@@ -30,10 +30,17 @@ public class DbObjectCommand
     [Command("table-list")]
     public async Task ShowTablesCommand(string schemaName, string? tableNameLike=null)
     {
-        var db = new PgCatalog(ConnectionConfig.Load(System.Environment.GetEnvironmentVariable("connection_config")!));
+        var conf = ConnectionConfig.Load(System.Environment.GetEnvironmentVariable("connection_config")!);
+        await using var ssh = new SshTunnel(conf);
+        await ssh.ConnectAsync();
+        var db = new PgCatalog(conf);
         await foreach(var table in db.ListTablesAsync(schemaName, tableNameLike))
         {
             Console.WriteLine(table.Name);
+            await foreach(var column in table.ListColumnsAsync())
+            {
+                Console.WriteLine($"\t{column.ColumnName}");
+            }
         }
     }
 }

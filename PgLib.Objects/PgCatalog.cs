@@ -14,6 +14,7 @@ public sealed class PgCatalog
     {
         _connectionString = connectionString;
     }
+
     public PgCatalog(ConnectionConfig config)
     {
         _config = config;
